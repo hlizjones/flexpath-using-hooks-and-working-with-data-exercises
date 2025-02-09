@@ -368,7 +368,7 @@ Description:
 Create a custom hook useFetch to centralize data-fetching logic.
 It should take a 'url' as a prop, and manage a GET request to this url.
 It should contain state to track the returned 'data', the 'loading' status, 
-and if an 'error' is encounter. IWhen the call is finished, it should return 
+and if an 'error' is encounter. When the call is finished, it should return 
 these three variables, wrapped in an object literal.
 
 Then, create a component `CustomHookDemo`in `src/components`. 
@@ -391,6 +391,11 @@ Description:
 
 Explain the benefits of using custom hooks like useFetch for data fetching.
 
+Using custom hooks separates the logic for the GET request and the logic for 
+displaying the fetched data (as well as the loading message or any error messages).
+This promotes reusability, makes the code easier to understand, and allows for 
+more informed testing. It also is simpler to update one custom hook instead of the 
+same logic in several different components.
 
 
 Exercise 18: Using useReducer for State Management

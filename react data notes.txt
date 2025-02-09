@@ -1,0 +1,708 @@
+How react works w the DOM
+    intial render -> request sent to get data to display on page
+    when react is notified that data is ready, it figures out what html to update -> reconcilation (what needs to be replaced and what doesn't)
+    react code is assigned to eventhandlers to process them -> which updates the ui
+    2 things cause events: 
+        1. browser ui (button click)
+        2.external resource triggers a completion event 
+
+SPA 
+    run 100% in client -> React can be 100% viable w/o controlling server
+    need bridge to transfer data btw js in browser and database
+        ex: REST
+
+    API Routes
+        React can be 100% viable w/o controlling server
+        SPA apps only depend on API Routes for REST server
+        creates REST API on Node server to handle requests/communicate w/ database(such as sql)
+        Processes incoming/outgoing request to Node server
+            file under API directory in project that has functions for GET and POST/PUT and DELETE
+        REST advantage -> doesn't depend on specific server technology -> can be used accross mutl server types
+
+
+Server comps
+    executed inside node server and html is rendered before sending to browser
+    no way to store state in comp or use browser eventhandlers
+    
+    "use client" at top will make comp client comp
+        no need to put in child comp after this
+
+Dates best store in database at GMT -> consistent , can change for dif timezones
+
+TypeScript
+    statically typed superset of Js provisding us w/ the power of types
+    can help catch errors/make code more reliable
+    static type checker -> gives alerts but doesn't change result at runtime
+    "any" type -> same as not using typescript at all
+
+        let i = 100;
+        i = "abcd" //typescript would give error bc i was initially assigned to number not string
+
+        const speaker = {
+            last: "
+        }
+
+    Objects:
+
+        type Speaker = {
+        first: string;
+        last: string;
+        };
+
+        const speaker: Speaker = { //uses speaker as a blueprint; would complain if first and last name were spelled incorrectly/didn't match up
+        first: "John",
+        last: "Doe",
+        };
+
+        const nameStr = `${speaker.first} ${speaker.last}`;
+
+    Generic function types: 
+
+        function myFunction<Type>(arg: Type): Type {
+        return arg;
+        }
+
+        const str: string = myFunction<string>("abcd");
+
+        const num: number = myFunction<number>(101);
+
+Prisma takes js object converts it to sqlinsert that gets executed against SQL database
+    makes programing against sqlite when using js easier
+
+
+Converting into Single State object
+    single state object w/ properties representing previously ind states
+    one call to a setter can mult states
+    prevents ambiquity/conflicting states in code
+    best to useReducer if state is more complex/there are a lot more states
+
+    BEFORE
+        const [speakerList, setSpeakerList]
+        = useState([]) ;
+
+        const [loadingStatus, setLoadingStatus]
+        = useState("loading");
+
+        const [error, setError]
+        = useState(undefined);
+
+    AFTER
+        const [speakerState, setSpeakerState]
+        = useState({
+        speakerList: [],
+        loadingStatus: "loading",
+        error: undefined,
+        });
+
+    USING SETTER
+
+        setSpeakerState({
+        speakerList: data,
+        loadingStatus: "success",
+        error: undefined,
+        })
+
+        setSpeakerState({
+        ... speakerState, // using spread operator to pass in previous state so you don't have to rep eat setting the other values
+        loadingStatus: "error", // just set specifically the only value needed to update
+        error:
+        error instanceof Error
+        ? error.message ?? "an unexpected error happened"
+        : "an unexpected error happened",
+        })
+
+    MENTIONING STATE DIRECTLY
+
+        if (speakerState. loadingStatus === "error") {
+        return <div className="card">Error: {speakerState.error}</div>;
+
+        }
+
+Suspense
+    sets up a promise that is returns then passed to a comp
+    will work with errorboundaries
+    mult nested promises inside a single suspense boundary will wait until all the promises are fulfilled before replacing fallback
+
+        import React, { use } from "react"; // "use" is a react hook designed specifically to work with Suspense
+
+        function Speakers() {
+        async function fetchSpeakerPromise() { //this promise is passed to SpeakerList
+        // return promise for speakers list
+        }
+        return (
+            <Suspense fallback{<div>Loading...<div>}
+                <SpeakerList
+                    speakerPromise={fetchSpeakerPromise} /> //program doesn't move past use until the promise completed so fallback is used in the meantime
+            </Suspense>
+        );
+        }
+
+        function SpeakerList({ speakerPromise }) {
+        const speakerList = use(speakerPromise); //when use hook returns, you are guaranteeds the data is avaialable -> similar to await but specific to comp that render in Suspense
+        // program pauses at "use" until speakerPromise completes
+        return (
+        <ul>
+        {speakerState.speakerList.map(speaker => (
+        <li key={speaker.id}>
+        {speaker. firstName} {speaker.lastName}
+        </li>
+        ))}
+        </ul>
+
+        )
+        }
+
+    Server only -> using server comps
+        function inside server acts like a promise and respects Suspense boundaries and function like the use hook
+
+Login authentication
+    NextAuth.js (Auth.js) npm install next-auth
+    pages/api/auth folder add file [...nextauth.js] -> wildcard route -> anything routed to api/auth get executed by this file
+        includes CredentialsProvider section
+            can have mult provides (ie google, twitter, regular username/passwork)
+            includes authorize section to match login to database
+            returns user object that is stored in browser
+    <NextAuthProvider> can wrap comps that need access to session authorization
+    give REST server access to auth as well
+
+Modal
+    hidden interface pops up and current interface goes away
+        modal interface often saves or sends data
+    modal dialogue is hidden and shown at appropriate timezones
+    data rendered in modal dialogue is stored in context along with a modalshow state 
+
+Wizards
+    Progressively moving form
+        form w/ mult pages
+        submits data progressively so if they only fill out one part, that data is saved
+        use steps
+        could put steps in their own comp
+
+    const [currentStep, setCurrentStep] = useState("STEP1");
+    
+    if (currentStep === "STEP1") {
+        //code
+    } else if (currentStep === "STEP2") {
+        //code
+    }
+     
+     return (
+    <>
+      <h5 className="text-uppercase mb-4">Stay Updated</h5>
+      <form onSubmit={handleSubmit}>
+        {currentStep === "STEP1" && (
+          <div className="d-flex">
+            //code
+              if (response.ok) {
+          setCurrentStep("STEP2");
+        } else {
+          alert(`Failed to subscribe ${email}. Please try again.`);
+        }
+          </div>
+        )}
+        {currentStep === "STEP2" && (
+          <>
+            <div className="mb-3">
+             //code
+            </div>
+        </>
+        )}
+        </form>
+        </>
+        );
+
+Animation
+    combo of state and cass (keyframe Animation)
+        cycles every certain number of seconds
+
+Server Comps and Suspense
+
+    export default async function SpeakerListContainer() { // use async -> server components are capable of performing async operations directly before rendering the content
+    const authSessionData: { user?: { id: string; email: string } } | null =
+        await getServerSession(authOptions); // calls directly to database -> does not go through REST
+
+    const speakerList = await getSpeakers(authSessionData?.user?.id ?? ""); 
+
+    return (
+        <SpeakerDataProvider speakerListInit={speakerList}> // pass in data received from database -> can pass to client comp (the client comp will now not need any state/useEffect to handle loading)
+        //Suspense will provide fallback for comp/child comp rendering data from database
+        <SpeakerModal />
+        <SpeakerMenu />
+        <SpeakerList />
+        </SpeakerDataProvider>
+    );
+    }
+
+
+Server Actions
+
+    call server action w/ j (how react knows it's an action) from react comp, server action updates database
+
+    Server actions can be written in server comp
+
+    Server (Node) is JS based, so is browser so passing data btw them is easy as long as they're primitive types
+    Two ways to calll server actions:
+        HTML form element using action attribute -> normal form action is overriden (so data isn't posted to form) w/ js expression (action method name) so data goes to server
+        Calling server actions directly from React: comp events (buttom clicks) and life cycyle events (func passed into useEffect)
+
+    EX Adding attendee to database:
+
+    Server actions can be written in server comp like in this:
+        
+        import prisma from "@/lib/prisma/prisma";
+        import { randomUUID } from "node:crypto";
+        import { redirect } from "next/navigation";
+
+        export default function ServerActionExample() {
+        async function addAttendeeAction(formData: FormData) { // declare async function inside server comp // FormData is collection of keys and values that represents data from the form
+            "use server"; // "use server" is key piece -> tells react we are trnsitioning to a server action
+            const attendeeRec = { // can only add serializable data -> only primitive objects can be passed to Server Action
+            id: randomUUID() as string, //sqlite code to add to database
+            email: formData.get("email") as string,
+            firstName: formData.get("firstName") as string,
+            lastName: formData.get("lastName") as string,
+            createdDate: new Date(),
+            };
+            await prisma.attendee.create({ data: attendeeRec });
+            redirect("/server-component-example"); // cannot show that this succeeded or failed, we can only redirect to a page (can be a success page or anything else (ex: page pulling data (i.e.list of attendees) from database to display))
+        }
+
+        return (
+            <div className="container m-2 p-4 rounded-2 bg-dark-subtle">
+            <form action={addAttendeeAction}> // add name of server action to action attribute
+                <div className="mb-3">
+                <label htmlFor="firstName" className="form-label">
+                    First Name
+                </label>
+                <input
+                    id="firstName"
+                    type="text"
+                    className="form-control"
+                    name="firstName"
+                />
+                </div>
+                <div className="mb-3">
+                <label htmlFor="lastName" className="form-label">
+                    Last Name
+                </label>
+                <input
+                    type="text"
+                    className="form-control"
+                    id="lastName"
+                    name="lastName"
+                />
+                </div>
+                <div className="mb-3">
+                <label htmlFor="email" className="form-label">
+                    Email Address
+                </label>
+                <input
+                    type="email"
+                    className="form-control"
+                    id="email"
+                    name="email"
+                />
+                </div>
+                <button type="submit" className="btn btn-primary">
+                Submit
+                </button>
+            </form>
+            </div>
+        );
+        }
+
+    Better to pull server action into its own comp like this: 
+
+    page-server-action.ts // server actions are not react comps or hooks -> they are dedicated functions
+
+        "use server";
+
+        import prisma from "@/lib/prisma/prisma";
+        import { redirect } from "next/navigation";
+        import { randomUUID } from "node:crypto";
+
+        export async function addAttendeeAction(formData: FormData) {
+        const attendeeRec = {
+            id: randomUUID() as string,
+            email: formData.get("email") as string,
+            firstName: formData.get("firstName") as string,
+            lastName: formData.get("lastName") as string,
+            createdDate: new Date(),
+        };
+        await prisma.attendee.create({ data: attendeeRec });
+        redirect("/server-component-example");
+        }
+
+
+    page.tsx
+
+        import { addAttendeeAction } from "@/app/server-action-example/page-server-action"; //import server action
+
+        export default function ServerActionExample() {
+        return (
+            <div className="container m-2 p-4 rounded-2 bg-dark-subtle">
+            <form action={addAttendeeAction}>
+                <div className="mb-3">
+                <label htmlFor="firstName" className="form-label">
+                    First Name
+                </label>
+                <input
+                    id="firstName"
+                    type="text"
+                    className="form-control"
+                    name="firstName"
+                />
+                </div>
+                <div className="mb-3">
+                <label htmlFor="lastName" className="form-label">
+                    Last Name
+                </label>
+                <input
+                    type="text"
+                    className="form-control"
+                    id="lastName"
+                    name="lastName"
+                />
+                </div>
+                <div className="mb-3">
+                <label htmlFor="email" className="form-label">
+                    Email Address
+                </label>
+                <input
+                    type="email"
+                    className="form-control"
+                    id="email"
+                    name="email"
+                />
+                </div>
+                <button type="submit" className="btn btn-primary">
+                Submit
+                </button>
+            </form>
+            </div>
+        );
+        }
+
+
+Server Action w/ Client Comp
+    combines eventhandlers and server actions so the ui can be updated during loading time
+
+    submit-button.tsx
+
+        "use client"; // transtions from server comp to client comp
+
+        import { useFormStatus } from "react-dom"; //useFormStatus is in react library 
+
+        export default function SubmitButton() {
+        const { pending } = useFormStatus(); //can track if serveraction is processing
+        return (
+            <button type="submit" aria-disabled={pending} className="btn btn-primary"> // can use eventhandlers
+            {pending ? "Adding..." : "Add"} 
+            </button>
+        );
+        }
+
+    page.tsx
+
+        import { addAttendeeAction } from "@/app/server-action-example/page-server-action";
+        import SubmitButton from "@/app/server-action-example/submit-button";
+
+        export default function ServerActionExample() {
+        return (
+            <div className="container m-2 p-4 rounded-2 bg-dark-subtle">
+            <form action={addAttendeeAction}>
+                <div className="mb-3">
+                <label htmlFor="firstName" className="form-label">
+                    First Name
+                </label>
+                <input
+                    id="firstName"
+                    type="text"
+                    className="form-control"
+                    name="firstName"
+                />
+                </div>
+                <div className="mb-3">
+                <label htmlFor="lastName" className="form-label">
+                    Last Name
+                </label>
+                <input
+                    type="text"
+                    className="form-control"
+                    id="lastName"
+                    name="lastName"
+                />
+                </div>
+                <div className="mb-3">
+                <label htmlFor="email" className="form-label">
+                    Email Address
+                </label>
+                <input
+                    type="email"
+                    className="form-control"
+                    id="email"
+                    name="email"
+                />
+                </div>
+                <SubmitButton /> // client comp
+            </form>
+            </div>
+        );
+        }
+
+Returning Data from Server Comps    
+
+    useFormState -> react hook gives visibility into what happens after server actions complete
+        returns new server action and state from server action
+
+    page-server-action just handlers the serveraction so taking the data and giving it to the server -> can give prevState if using useFormState in page to display data sent to server
+    page handles ui outputs -> server action won't update ui or force rerender until a dependency
+
+    page-server-action.ts
+
+        "use server";
+
+        import prisma from "@/lib/prisma/prisma";
+        import { Prisma } from "@prisma/client";
+        import { randomUUID } from "node:crypto";
+
+        export async function addAttendeeAction(
+        prevState: { 
+            firstName: string;
+            lastName: string;
+            email: string;
+            message: string;
+        }, // add state value in addition to FormData -> allows serveraction to return data that we can use as state
+        formData: FormData,
+        ) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+
+        const attendeeRec = {
+            id: randomUUID() as string,
+            email: formData.get("email") as string,
+            firstName: formData.get("firstName") as string,
+            lastName: formData.get("lastName") as string,
+            createdDate: new Date(),
+        };
+        try {
+            await prisma.attendee.create({ data: attendeeRec });
+        } catch (error) { // use try/catch to catch error
+            if (
+            error instanceof Prisma.PrismaClientKnownRequestError && // error specififc w/ prisma 
+            error.code === "P2002"
+            ) {
+            return {
+                ...prevState,
+                firstName: formData.get("firstName") as string,
+                lastName: formData.get("lastName") as string,
+                email: "", //only email field cleared bc it is the only one that violates 
+                message:
+                `error: An attendee with the email ` +
+                `${formData.get("email")} already exists.`,
+            };
+            } else {
+            return {
+                ...prevState,
+                firstName: formData.get("firstName") as string,
+                lastName: formData.get("lastName") as string,
+                email: formData.get("email") as string, // saves input so user can correct instead of typing over again
+                message: "error: An error occurred while adding attendee.",
+            };
+            }
+        }
+
+        return { // replace redirect to new page w/ return
+            ...prevState, // previous state
+            firstName: "", // returns empty string for these field to "clear" form
+            lastName: "",
+            email: "",
+            message: // appends message
+            `Attendee ${attendeeRec.firstName} ` +
+            `${attendeeRec.lastName} / ` +
+            `${attendeeRec.email} added successfully!`,
+        };
+        }
+
+        page.tsx
+
+            "use client"; //make client comp -> react server comp can't call hooks
+            
+            import { ChangeEvent, useState, useEffect } from "react";
+            import { useFormState } from "react-dom";
+            import { addAttendeeAction } from "@/app/server-action-example/page-server-action";
+            import SubmitButton from "@/app/server-action-example/submit-button";
+
+            type FormDataType = {
+            firstName: string;
+            lastName: string;
+            email: string;
+            };
+
+            export default function ServerActionExample() {
+            const initialState: {
+                message: string;
+                firstName: string;
+                lastName: string;
+                email: string;
+            } = { message: "", firstName: "", lastName: "", email: "" };
+
+            const [state, formAction] = useFormState(addAttendeeAction, initialState);  // pass in current server action and initial state
+            //returns state and new server action that will be passed to form -> the new server action allows the hook to intercept what is going back and forth btw server comp and our server action
+            //does not cause rerender -> not a local comp state, it's a returned state from external -> only local state causes rerenders 
+
+            const [formData, setFormData] = useState<FormDataType>({ //our own state to help clear fields
+                firstName: state.firstName, //sets to initial state in useFormState
+                lastName: state.lastName,
+                email: state.email,
+            });
+
+            useEffect(() => {
+                setFormData({
+                firstName: state.firstName as string,
+                lastName: state.lastName as string,
+                email: state.email as string,
+                });
+            }, [state]); // state forces rerender, when state is returns from external and is different than before it causes rerender as a dependency
+
+            const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+            const { name, value } = event.target; //looks at value of field 
+            setFormData((prevState) => ({ //assigns value to formData
+            ...prevState,
+            [name]: value, 
+            }));
+            };
+
+            return (
+                <div className="container m-2 p-4 rounded-2 bg-dark-subtle">
+                <form action={formAction}> //action attribute is new formAction
+                <div className="mb-3">
+                        <label htmlFor="firstName" className="form-label">
+                            First Name
+                        </label>
+                        <input
+                            id="firstName"
+                            type="text"
+                            className="form-control"
+                            name="firstName"
+                            value={formData.firstName} //value and onChange makes input fields controlled
+                            onChange={handleChange}
+                        />
+                        </div>
+                        <div className="mb-3">
+                        <label htmlFor="lastName" className="form-label">
+                            Last Name
+                        </label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id="lastName"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                        />
+                        </div>
+                        <div className="mb-3">
+                        <label htmlFor="email" className="form-label">
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            className="form-control"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                        />
+                        </div>
+                    <SubmitButton />
+                    {state.message && ( // use state to display error or success message
+                    <div
+                        className={`mt-2 ${
+                        state.message.startsWith("error") ? "text-danger" : "text-muted"
+                        }`}
+                    >
+                        {state.message}
+                    </div>
+                    )}
+                </form>
+                </div>
+            );
+            }
+
+
+Local state is managed within a single component and represents information encapsulated 
+in the component itself. External state management, on the other hand, shares state 
+throughout the application and allows data to be shared among different components.
+
+External state, like data fetched from an API or stored in local storage, doesn't 
+automatically trigger a re-render in React because React only re-renders a component when 
+its internal state or props change, and it can't directly detect changes in external data 
+unless you explicitly update the component's state with that new data using a mechanism like 
+setState or a similar hook, effectively linking the external data to the component's internal
+state.
+
+Calling Server Actions Directly -> there is not a layer between the component and the server action
+    not added as attribute like this: <form action={formAction}>
+
+    in email-input.tsx
+
+    const onBlur = async (event: React.FocusEvent<HTMLInputElement>) => {
+    const emailValue = event.target.value;
+
+    setEmailInDatabase(await CheckEmailExistsAction(emailValue)); // return  call to new server action 
+    };
+
+    in page-server-action.ts
+
+    export async function CheckEmailExistsAction(email: string): Promise<boolean> { // server action
+    await new Promise<void>((resolve) => setTimeout(resolve, 3000)); // simulating real Node server
+    const attendee = await prisma.attendee.findUnique({
+        where: {
+        email: email,
+        },
+    });
+    return attendee !== null;
+    }
+
+Validating Data from Server Actions
+    Must treat data from server actions as suspicious
+    Use a runtime data validation library (such as Zod) for checking data
+
+    Zod
+        npm install zod 
+        import {z} from "zod";
+
+        const AttendeeSchema = z.object({ //zod schema -> defines details about type of data -> throw an error if data does not meet definition 
+            email: z.string().email(), // required, valid email
+            firstName: z.string().min(2), // required, at least two characters
+            lastName: z.string().min(3), // required, at least 3 characters
+            id: z.string().uuid().optional(), // optional, must match uuid format
+        });
+
+          const parsedData = AttendeeSchema.safeParse({ // use schema to parse data
+            email: formData.get("email"), // //pass data into safeParse
+            firstName: formData.get("firstName"),
+            lastName: formData.get("lastName"),
+        }); //returns parsedData which includes info including parsedData 
+
+          if (!parsedData.success) { //to display errors
+            let errorMessage = "";
+            parsedData.error.issues.forEach(
+            (issue) => (errorMessage += `${issue.path[0]}:${issue.message};`),
+            );
+            return {
+            ...prevState,
+            firstName: formData.get("firstName") as string,
+            lastName: formData.get("lastName") as string,
+            email: formData.get("email") as string,
+            message: `error: validation: ${errorMessage}`,
+            };
+        }
+
+         const attendeeRec = { // final result
+            ...parsedData.data,
+            id: randomUUID() as string,
+            createdDate: new Date(),
+        };
+
+

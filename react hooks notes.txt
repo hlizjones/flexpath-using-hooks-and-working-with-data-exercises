@@ -1,0 +1,347 @@
+Rules of Reat Hooks
+    only be called in function comp
+    cannot me called conditionally
+    must be called at top level
+
+15 hooks: 
+    Basic:  usestate, useeffect, usecontext
+    Addtional: usereducer, usercallback, usememo, useref, usedeferredvalue, usetrasition, useid, usedebugvalue, useimperativehandle, uselayouteffect
+    Library: usesyncexternalstore, use insertioneffect
+
+usestate  
+    previouststae: used if new state is dep on old state -> pass into setter w/ function to ensure accurancy 
+    
+useffect:
+    does not support async -> workaround is create aync function inside useeffect
+
+updatestate is actually creating newstate -> replace existing state w/ new state
+
+    Ex 1:
+    function updateSpeaker (speakerRec) {
+        const speakerUpdated = speaker.map(function (rec) { //create new array named speakerUpdated with map
+            return speakerRec.id === rec.id ? speakerRec : rec
+        })
+        setSpeakers(speakerUpdated) //replacing existing state w/ speakerUpdated -> setting entirely new array to state
+    }
+
+    Ex 2:
+    function toggleFavoriteSpeaker(speakerRec) {
+        const speakerRecUpdated = { ...speakerRec, favorite: !speakerRec.favorite}; //creating new arr with spread operator and specifying properties in the new arr 
+    }
+
+optimistic UI:
+    changing UI by changing state before updating external data w/ a rest call
+
+usereducer
+    LearnReducer 3:50ish    Basics Module 4
+    usually reducer func is put in its own file 
+        reducer (state, action) -> passed 2 args
+            state: previous state
+            action: passed from dispatch (can have properties ie action.type)
+
+    import { useReducer } from "react";
+
+    function reducer(state, action) {
+    switch (action.type) {
+        case "increment":
+        return state + action.incrementValue;
+        default:
+        return action;
+    }
+    }
+    export default function demo() {
+    const [state, dispatch] = useReducer(reducer, 10);
+    return (
+        <button
+        onClick={() =>
+            dispatch({
+            type: "increment",
+            incrementValue: 1,
+            })
+        }
+        >
+        {state}
+        </button>
+    );
+    }
+
+useref
+    tink of as ecsape hatch for react comp 
+    uses cases:
+        access DOM nodes associated w/ react elements -> changes may not stick upon rerend
+            focus on a field, styles changes, etc
+        direct way to associate js variable to a func comp
+                    dif that state bc it gives us a varaible that we can update in js and persists btw rerenders -> updates don't cause rerenders
+                        often used to track number of times a comp rerenders
+
+            import { useRef, useState } from "react";
+            export default function Demo() {
+
+            // case #1 reference DOM
+            const imgRef = useRef(); //set useRef to const
+            // case #2 reference value that does not cause re-render
+            const mouseOverCnt = useRef(0);
+            const [cnt, setCnt] = useState(0);
+            return (
+                <div className="container">
+                <img src="/images/Speaker-1124.jpg"
+                    ref={imgRef} //assign; images dom element set to imgRef const
+                    style={{ filter: "grayscale(100%)" }}
+                    onMouseOver={() => {
+                    imgRef.current.style.filter = "grayscale(0%)";setCnt(cnt+1) //must use .current to get value of useRef variable -> then you can use as if you did getelementbyid //setCnt forces rerender
+                    mouseOverCnt.current++; //not assign to element but refers to the whole comp; value not reset; tracks number of timesmouse passes over 
+                    }}
+                    onMouseOut={() => {
+                    imgRef.current.style.filter = "grayscale(100%)";
+                    }}
+                />
+                <hr />
+                <button
+                    onClick={() => {
+                    alert("Registered! mouseOverCnt:" + mouseOverCnt.current);
+                    }}
+                >
+                    Register
+                </button>
+                </div>
+            );
+            }
+
+        refs are only available after return statement (after element renders or eventhandler executes)
+
+usecontext
+    inversion of control:
+        parent defines context but children give commands for the context
+        
+    context ref in comp forces that comp to rerender -> try to push provider for context as far down in tree as possible
+
+    Usually three comps for sharing context: 
+    1. for setting state (returns the setters and state values)
+
+        import { useState } from "react";
+
+        function useSpeakerModal() {
+        const [modalShow, setModalShow] = useState(false);
+
+        const [modalSpeakerId, setModalSpeakerId] = useState(0);
+        const [modalSpeakerFirstName, setModalSpeakerFirstName] = useState("");
+        const [modalSpeakerLastName, setModalSpeakerLastName] = useState("");
+        const [modalSpeakerImageUrl, setModalSpeakerImageUrl] = useState("");
+        const [modalSpeakerEmail, setModalSpeakerEmail] = useState("");
+
+        return {
+            modalShow,
+            setModalShow,
+
+            modalSpeakerId,
+            setModalSpeakerId,
+            modalSpeakerFirstName,
+            setModalSpeakerFirstName,
+            modalSpeakerLastName,
+            setModalSpeakerLastName,
+            modalSpeakerEmail,
+            setModalSpeakerEmail,
+            modalSpeakerImageUrl,
+            setModalSpeakerImageUrl,
+        };
+        }
+
+        export default useSpeakerModal;
+
+    2. for creating context
+    3. provider(for providing the context -> sets setters and state values to variable value and wraps children in Context.Provider comp w/ value attribute equal to variable value created (value={values}))
+
+            import React, { createContext } from "react";
+            import useSpeakerModal from "../hooks/useSpeakerModal";
+
+            export const SpeakerModalContext = createContext({
+            modalShow: false,
+            setModalShow: () => {},
+            modalSpeakerId: 0,
+            setModalSpeakerId: () => {},
+            modalSpeakerFirstName: "",
+            setModalSpeakerFirstName: () => {},
+            modalSpeakerLastName: "",
+            setModalSpeakerLastName: () => {},
+            modalSpeakerImageUrl: "",
+            setModalSpeakerImageUrl: () => {},
+            });
+
+            export const SpeakerModalProvider = ({ children }) => {
+            const {
+                modalShow,
+                setModalShow,
+                modalSpeakerId,
+                setModalSpeakerId,
+                modalSpeakerFirstName,
+                setModalSpeakerFirstName,
+                modalSpeakerLastName,
+                setModalSpeakerLastName,
+                modalSpeakerEmail,
+                setModalSpeakerEmail,
+                modalSpeakerImageUrl,
+                setModalSpeakerImageUrl,
+            } = useSpeakerModal();
+
+            const value = {
+                modalShow,
+                setModalShow,
+                modalSpeakerId,
+                setModalSpeakerId,
+                modalSpeakerFirstName,
+                setModalSpeakerFirstName,
+                modalSpeakerLastName,
+                setModalSpeakerLastName,
+                modalSpeakerEmail,
+                setModalSpeakerEmail,
+                modalSpeakerImageUrl,
+                setModalSpeakerImageUrl,
+            };
+
+            return (
+                <SpeakerModalContext.Provider value={value}>
+                {children}
+                </SpeakerModalContext.Provider>
+            );
+            };
+
+
+
+    React hook can include other react hooks inside of them
+        one hook would be generic hook used across mult projects
+        it is used inside another react hook (which calls it) -> this hook is specific to the project
+
+        context comp needs to render before context gets called
+            easy in context is provided in parent and consumed in child
+            difficult if provided/consumed in the same comp 
+
+                cannot consume context before rendering:
+
+                    import {SpeakersDataContext, SpeakersDataProvider} from "../contexts/SpeakersDataContext"
+                    
+                    export default function Speaker() {
+                    const {darkTheme = useContext(ThemeContext)} //consume context
+
+                    return (
+                        <SpeakersDataProvider> //renders the context
+                            <SpeakerDetail>
+                        <SpeakersDataProvider/>
+                    )
+                    }
+
+                solution:
+
+                    function Inner () {
+                        const {darkTheme = useContext(ThemeContext)}
+                        return //logic using context
+                    }
+
+                    export default function Speaker() {
+                        return(
+                        <SpeakersDataProvider> //renders the context
+                            <Inner {...props}>
+                        <SpeakersDataProvider/> 
+                        )
+                    }
+
+        
+    pivot menu
+        allows users to switch between content categories
+        can use context to handle -> categories are states in the context 
+        
+        can add states in context to useeffect [] dependencies
+
+    Popups
+
+        have their own life cycle events independetn of main app
+        child of main app
+        reated and then destroyed
+        creat hidden popup comp at launch and change its visibility
+        put as far down the hierarchy as possible
+
+
+useMemo: caches the result of calc 
+    the cached result will be shown unless a dependency in the dependency array forces rerender
+    can only wrap a pure func
+    only shallow comp   
+        will not deepcompare if arrays/objects are in dependency array []
+        solution json.stringify the dependency and add that to the array
+            const speakerListJson = JSON.stringify(speakerList)
+            const speakerListFiltered = useMemo( //memoizes list of speakers on the page
+                use SpeakerSortAndFilter(
+                    speakerList
+                ),
+                [speakerListJson] //they will only change if there is an update to the database of speakers
+            )
+
+memo: keeps comp from rerendering when parent rerenders if props passed in are unchanged
+    memoize the child comp
+        wrap comp with memo
+        const ChildComp = memo(//code return(//code))
+        
+
+useCallback: cache func calls and only re-creates it if its dependencies change
+    useCallback accepts as a first parameter a function and returns a memoized version of it (in terms of its memory location, not the computation done inside). 
+    Meaning that the returned function doesn't get recreated on a new memory reference every time the component re-renders, while a normal function inside a component does.
+    The returned function gets recreated on a new memory reference if one of the variables inside useCallback's dependency array (its second parameter) changes.
+    
+    In simple words, useCallback is used to save the function reference somewhere outside the component render so we could use the same reference again. That reference 
+    will be changed whenever one of the variables in the dependencies array changes.
+
+        toggleFavoriteSpeaker={ useCallback(
+            () => toggleFavoriteSpeaker(speakerRec), []
+        )}
+
+    example use case: a func is a prop of a comp, each time the comp renders, the function is recreated even though the function didn't change -> useCallback to not recreate the function unnecessarily
+        if there is a dependency -> the func will be recrreated when the dependency changes 
+
+
+useDeferredvalue and useTransitions
+    designed to make react apps more responsive by changing priority of states
+        ui is response while slow running tasks occured
+    better experience for users
+    
+    useDeferredvalue
+        lowers priority of state when state is managed by external Context
+
+            export default function App() {
+            const [search, setSearch] = useState("");
+            const deferredSearch = useDeferredValue(search);
+            
+            return (
+                <>
+                <input value={search} onChange={(e) => {setSearch(e.target.value); }}/>
+                <SlowResults query={deferredSearch} />
+                </>
+            );
+            }
+        
+
+    useTransition
+        used when you can control state
+        ispendingvalue returned is used to show loading/busy signal
+            knows when low priority state change is happening
+
+        export default function App() {
+
+        const [search, setSearch] = useState("");
+        const [isPending, startTransition] = useTransition(); 
+        //startTransition is func that is passed another func that is executes at a lower priority than all other state changes; isPending tracks when state changes in useTransition are complete
+        const [currentSearch, setCurrentSearch] = useState("");
+        
+        return (
+            <>
+            <input value={currentSearch} 
+                onChange={(e) => {
+                setCurrentSearch(e.target.value);
+                startTransition(() => setSearch(e.target.value));
+                }}
+            />
+            {isPending ? "refreshing..." : ""} //isPending true means UI might not be accurate -> show spinner to reflect this 
+            <SlowResults query={search} />
+            </>
+        );
+        }
+
+        
+
